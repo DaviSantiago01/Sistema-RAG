@@ -13,6 +13,9 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 # Configuração
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
+api_key = os.getenv("GROQ_API_KEY")
+if not api_key:
+    raise ValueError("GROQ_API_KEY não encontrado nas variáveis de ambiente.")
 
 app = FastAPI(title="Legal AI RAG")
 
@@ -33,6 +36,14 @@ async def carregar_documentos(file: UploadFile = File(...)):
     """Recebe e salva PDF no servidor"""
     if not file.filename.endswith('.pdf'):
         raise HTTPException(status_code=400, detail="Apenas PDFs são permitidos.")
+    
+    file.file.seek(0, 2)
+    file_size = file.file.tell()
+    file.file.seek(0)
+
+    if file_size > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Arquivo muito grande (máximo 10MB)")
+
     
     os.makedirs("data/documents/", exist_ok=True)
     caminho_arquivo = f"data/documents/{file.filename}"
