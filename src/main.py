@@ -37,6 +37,7 @@ async def carregar_documentos(file: UploadFile = File(...)):
     if not file.filename.endswith('.pdf'):
         raise HTTPException(status_code=400, detail="Apenas PDFs são permitidos.")
     
+    # Verifica o tamanho do arquivo PDF antes de salvar (move o ponteiro para o final, lê o tamanho em bytes, e retorna ao início)
     file.file.seek(0, 2)
     file_size = file.file.tell()
     file.file.seek(0)
@@ -44,11 +45,15 @@ async def carregar_documentos(file: UploadFile = File(...)):
     if file_size > 10 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="Arquivo muito grande (máximo 10MB)")
 
-    
-    os.makedirs("data/documents/", exist_ok=True)
-    caminho_arquivo = f"data/documents/{file.filename}"
+    # Verifique se o diretório existe, se não, cria
+    os.makedirs("data/documentos/", exist_ok=True)
+
+    # Caminho para salvar o arquivo
+    caminho_arquivo = f"data/documentos/{file.filename}"
 
     try:
+        # Salva o arquivo PDF enviado pelo usuário
+        # Abre o arquivo para escrita binária ('wb') — necessário para salvar PDFs e outros arquivos não-texto sem corromper os dados
         with open(caminho_arquivo, "wb") as f:
             content = await file.read()
             f.write(content)
@@ -65,7 +70,7 @@ async def carregar_documentos(file: UploadFile = File(...)):
 @app.post("/processar/{filename}")
 async def processar_documento(filename: str):
     """Carrega PDF, faz chunking e salva no vector store"""
-    caminho_arquivo = f"data/documents/{filename}"
+    caminho_arquivo = f"data/documentos/{filename}"
     if not os.path.exists(caminho_arquivo):
         raise HTTPException(status_code=404, detail="Arquivo não encontrado.")
 
@@ -107,6 +112,11 @@ async def responder_pergunta(pergunta: str):
             persist_directory="./chroma_db",
             embedding_function=embeddings
         )
+
+        # Validar se há documentos na base
+        count = vectordb._collection.count()
+        if count == 0:
+            raise HTTPException(status_code=404, detail="Nenhum documento indexado. Por favor, processe um documento primeiro.")
         
         # Buscar documentos similares
         docs = vectordb.similarity_search(pergunta, k=3)
@@ -134,3 +144,28 @@ async def responder_pergunta(pergunta: str):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro: {str(e)}")
+    
+@app.get("/documentos/")
+async def listar_documentos():
+    """Lista os documentos carregados no servidor"""
+    try:
+
+        base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        docs_dir = os.path.join(base_path, "data", "documentos")
+
+        # Verifica o diretório de documentos, se nao existir, retorna lista vazia
+        if not os.path.exists(docs_dir):
+            return {
+                "documentos": [],
+                "total": 0
+            }
+
+        # Lista os arquivos PDF no diretório, list comprehension para filtrar apenas PDFs
+        documentos = [f for f in os.listdir(docs_dir) if f.endswith('.pdf')] 
+
+        return {
+            "documentos": documentos,
+            "total": len(documentos)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro {str(e)}")
