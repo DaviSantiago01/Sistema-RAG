@@ -2,6 +2,7 @@
 import os
 from dotenv import load_dotenv
 from fastapi import FastAPI, UploadFile, File, HTTPException
+from config import DOCS_DIR, CHROMA_DIR
 
 # LangChain - Loaders, Splitters, Embeddings, Vector Stores, LLMs e Messages
 from langchain_community.document_loaders import PyPDFLoader
@@ -10,6 +11,7 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain_groq import ChatGroq
 from langchain_core.messages import HumanMessage, SystemMessage
+
 
 # Configuração
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
@@ -46,10 +48,10 @@ async def carregar_documentos(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="Arquivo muito grande (máximo 10MB)")
 
     # Verifique se o diretório existe, se não, cria
-    os.makedirs("data/documentos/", exist_ok=True)
+    os.makedirs(DOCS_DIR, exist_ok=True)
 
     # Caminho para salvar o arquivo
-    caminho_arquivo = f"data/documentos/{file.filename}"
+    caminho_arquivo = os.path.join(DOCS_DIR, file.filename)
 
     try:
         # Salva o arquivo PDF enviado pelo usuário
@@ -70,7 +72,7 @@ async def carregar_documentos(file: UploadFile = File(...)):
 @app.post("/processar/{filename}")
 async def processar_documento(filename: str):
     """Carrega PDF, faz chunking e salva no vector store"""
-    caminho_arquivo = f"data/documentos/{filename}"
+    caminho_arquivo = os.path.join(DOCS_DIR, filename)
     if not os.path.exists(caminho_arquivo):
         raise HTTPException(status_code=404, detail="Arquivo não encontrado.")
 
@@ -91,7 +93,7 @@ async def processar_documento(filename: str):
         vectordb = Chroma.from_documents(
             chunks,
             embedding=embeddings,
-            persist_directory="./chroma_db"
+            persist_directory=CHROMA_DIR
         )
 
         return {
@@ -109,7 +111,7 @@ async def responder_pergunta(pergunta: str):
     try:
         # Carregar vector store
         vectordb = Chroma(
-            persist_directory="./chroma_db",
+            persist_directory=CHROMA_DIR,
             embedding_function=embeddings
         )
 
@@ -149,19 +151,15 @@ async def responder_pergunta(pergunta: str):
 async def listar_documentos():
     """Lista os documentos carregados no servidor"""
     try:
-
-        base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        docs_dir = os.path.join(base_path, "data", "documentos")
-
         # Verifica o diretório de documentos, se nao existir, retorna lista vazia
-        if not os.path.exists(docs_dir):
+        if not os.path.exists(DOCS_DIR):
             return {
                 "documentos": [],
                 "total": 0
             }
 
         # Lista os arquivos PDF no diretório, list comprehension para filtrar apenas PDFs
-        documentos = [f for f in os.listdir(docs_dir) if f.endswith('.pdf')] 
+        documentos = [f for f in os.listdir(DOCS_DIR) if f.endswith('.pdf')] 
 
         return {
             "documentos": documentos,

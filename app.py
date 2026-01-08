@@ -87,6 +87,16 @@ if st.session_state.get('doc_processado', False):
                             st.text(f"{i}. {source.get('source', 'N/A')}")
                         
                         st.info(f"📊 Documentos consultados: {data['num_docs']}")
+                        
+                        # Armazenar histórico de chat
+                        if "chat_history" not in st.session_state:
+                            st.session_state["chat_history"] = []
+
+                        st.session_state["chat_history"].append({
+                            "pergunta": pergunta,
+                            "resposta": data['resposta'],
+                        })
+
                     else:
                         st.error(f"❌ {response.json().get('detail', 'Erro desconhecido')}")
                 except Exception as e:
