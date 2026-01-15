@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 import requests
 
@@ -5,6 +6,8 @@ st.set_page_config(page_title="Legal AI", page_icon="⚖️")
 
 st.title("⚖️ Legal AI - Sistema RAG Jurídico")
 st.markdown("---")
+
+BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000").rstrip("/")
 
 # Upload de PDF
 st.subheader("📄 Upload de Documentos")
@@ -14,21 +17,25 @@ if uploaded_file and st.button("📤 Enviar Documento"):
     with st.spinner("Fazendo upload..."):
         try:
             files = {"file": uploaded_file}
-            response = requests.post("http://localhost:8000/carregar/", files=files)
+            response = requests.post(f"{BACKEND_URL}/carregar/", files=files, timeout=60)
             
             if response.status_code == 200:
                 data = response.json()
-                st.success(f"✅ {data['message']}")
-                st.info(f"**Arquivo:** {data['filename']}")
-                st.session_state['uploaded_filename'] = data['filename']
+                filename = data.get("nome_arquivo") or data.get("filename") or uploaded_file.name
+                st.success("✅ Upload concluído")
+                st.info(f"**Arquivo:** {filename}")
+                st.session_state['uploaded_filename'] = filename
             elif response.status_code == 400:
                 st.error(f"❌ {response.json()['detail']}")
             elif response.status_code == 500:
                 st.error(f"❌ {response.json()['detail']}")
             else:
                 st.error(f"❌ Erro inesperado ({response.status_code})")
-        except requests.exceptions.ConnectionError:
-            st.error("❌ Servidor offline. Rode: uvicorn src.main:app --reload")
+        except requests.exceptions.ConnectionError as e:
+            st.error(f"❌ Servidor offline em {BACKEND_URL}. Rode: uvicorn src.main:app --reload")
+            st.caption(str(e))
+        except requests.exceptions.Timeout:
+            st.error(f"❌ Timeout falando com {BACKEND_URL}.")
         except Exception as e:
             st.error(f"❌ Erro: {str(e)}")
 
@@ -43,7 +50,7 @@ if 'uploaded_filename' in st.session_state:
     if st.button("🔄 Processar e Indexar"):
         with st.spinner("Processando documento..."):
             try:
-                response = requests.post(f"http://localhost:8000/processar/{filename}")
+                response = requests.post(f"{BACKEND_URL}/processar/{filename}", timeout=300)
                 
                 if response.status_code == 200:
                     data = response.json()
@@ -69,8 +76,9 @@ if st.session_state.get('doc_processado', False):
             with st.spinner("Buscando resposta..."):
                 try:
                     response = requests.post(
-                        "http://localhost:8000/pergunta/",
-                        params={"pergunta": pergunta}
+                        f"{BACKEND_URL}/pergunta/",
+                        json={"pergunta": pergunta},
+                        timeout=120,
                     )
                     
                     if response.status_code == 200:
@@ -83,7 +91,7 @@ if st.session_state.get('doc_processado', False):
                         
                         # Exibir fontes
                         st.markdown("### 📚 Fontes utilizadas:")
-                        for i, source in enumerate(data['sources'], 1):
+                        for i, source in enumerate(data.get('sources', []), 1):
                             st.text(f"{i}. {source.get('source', 'N/A')}")
                         
                         st.info(f"📊 Documentos consultados: {data['num_docs']}")
@@ -98,6 +106,10 @@ if st.session_state.get('doc_processado', False):
                         })
 
                     else:
-                        st.error(f"❌ {response.json().get('detail', 'Erro desconhecido')}")
+                        try:
+                            detail = response.json().get('detail', 'Erro desconhecido')
+                        except Exception:
+                            detail = response.text or 'Erro desconhecido'
+                        st.error(f"❌ {detail}")
                 except Exception as e:
                     st.error(f"❌ Erro: {str(e)}")
