@@ -2,10 +2,17 @@ python-dotenv
 fastapi
 uvicorn[standard]
 langchain
+langchain-core
 langchain-community
 langchain-text-splitters
 langchain-google-genai
+langchain-groq
+sentence-transformers
 chromadb
 pypdf
 rank-bm25
 streamlit
+requests
+sqlalchemy
+psycopg[binary]
+alembic

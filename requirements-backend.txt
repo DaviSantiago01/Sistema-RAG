@@ -1,0 +1,26 @@
+python-dotenv
+fastapi
+uvicorn[standard]
+python-multipart
+
+# Evita wheels CUDA gigantes (nvidia-*) no build do Linux
+# URL direta para não "poluir" o resolver com um índice extra.
+torch @ https://download.pytorch.org/whl/cpu/torch-2.2.2%2Bcpu-cp311-cp311-linux_x86_64.whl
+
+# Torch 2.2.x ainda pode emitir warning/instabilidade com NumPy 2.x
+numpy<2
+
+langchain
+langchain-core
+langchain-community
+langchain-text-splitters
+langchain-google-genai
+langchain-groq
+chromadb
+pypdf
+rank-bm25
+sqlalchemy
+psycopg[binary]
+alembic
+sentence-transformers
+requests
