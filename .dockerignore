@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+chroma_db/
+postgres_data/
+# PDFs e dados grandes não precisam ir pro build (montamos via volume)
+data/documentos/
+.git/
+.gitignore
