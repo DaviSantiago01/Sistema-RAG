@@ -1,12 +1,12 @@
-# ⚖️ Legal AI — RAG Jurídico
+# 🧠 Projeto RAG — Assistente de Documentos
 
-Sistema RAG para pesquisa inteligente de jurisprudência e análise de precedentes.
+Sistema RAG para análise e perguntas sobre documentos em PDF.
 
 ---
 
 ## ✅ O que este projeto faz
 
-- Upload de PDFs jurídicos
+- Upload de PDFs
 - Indexação em vetores (Chroma)
 - Perguntas com RAG + LLM
 - Respostas com fontes
@@ -28,6 +28,7 @@ Pergunta → Busca Vetorial → RAG → LLM → Resposta + Fonte
 - Backend: FastAPI + LangChain
 - Vetores: ChromaDB
 - LLM: Groq
+- Embeddings: Google
 - Frontend: Streamlit
 - Banco: PostgreSQL
 
@@ -38,22 +39,10 @@ Pergunta → Busca Vetorial → RAG → LLM → Resposta + Fonte
 Crie um .env baseado em [.env.example](.env.example) e preencha:
 
 - `GROQ_API_KEY` (obrigatório)
-- `DATABASE_URL` (já configurado para Docker/local)
-
----
-
-## ▶️ Como rodar com Docker (recomendado)
-
-Use [docker-compose.yml](docker-compose.yml):
-
-```
-docker compose up -d --build
-```
-
-Acesse:
-
-- Backend: http://localhost:8000/docs
-- Frontend: http://localhost:8501
+- `GOOGLE_API_KEY` (obrigatório)
+- `DATABASE_URL`
+- `SECRET_KEY`
+- `CORS_ORIGINS`
 
 ---
 
@@ -68,13 +57,13 @@ pip install -r requirements.txt
 2. Inicie o backend
 
 ```
-uvicorn backend/src.main:app --reload
+uvicorn backend.main:app --reload
 ```
 
 3. Inicie o frontend
 
 ```
-streamlit run frontend/app.py
+streamlit run app.py
 ```
 
 ---
@@ -90,10 +79,8 @@ streamlit run frontend/app.py
 
 ## 📁 Estrutura principal
 
-- Backend: [backend/src/main.py](backend/src/main.py)
-- Frontend: [frontend/app.py](frontend/app.py)
-- Docker backend: [backend/Dockerfile](backend/Dockerfile)
-- Docker frontend: [frontend/Dockerfile](frontend/Dockerfile)
+- API: [backend/main.py](backend/main.py)
+- Frontend: [app.py](app.py)
 - Dependências: [requirements.txt](requirements.txt)
 
 ---
@@ -101,6 +88,6 @@ streamlit run frontend/app.py
 ## ⚠️ Observações
 
 - Não versionar `.env` (já ignorado em [.gitignore](.gitignore))
-- PDFs ficam em `backend/data/documentos` (ignorado do git)
+- PDFs ficam em `data/documentos` (ignorado do git)
 
 ---
